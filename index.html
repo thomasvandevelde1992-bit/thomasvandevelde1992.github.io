@@ -142,33 +142,43 @@ function listen(){
 
 // ADD
 window.addItem = async function(){
-  const name = document.getElementById("name").value.trim();
-  const qty = parseInt(document.getElementById("qty").value);
-  const min = parseInt(document.getElementById("min").value);
+
+  const name = document.getElementById('f-name').value.trim();
+  const qty = parseInt(document.getElementById('f-qty').value);
+  const min = parseInt(document.getElementById('f-min').value);
 
   if(!name || isNaN(qty) || isNaN(min)){
-    alert("Champs manquants");
+    alert("Champs obligatoires manquants");
     return;
   }
 
+  const btn = document.getElementById('add-btn');
+  btn.disabled = true;
+  btn.textContent = "Ajout en cours...";
+
   try{
-    await addDoc(collection(db,"items"),{
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout Firebase")), 8000)
+    );
+
+    const write = addDoc(collection(db,'items'),{
       name,
       qty,
       min,
-      user,
       createdAt: serverTimestamp()
     });
 
-    document.getElementById("name").value="";
-    document.getElementById("qty").value="";
-    document.getElementById("min").value="";
+    await Promise.race([write, timeout]);
+
+    btn.textContent = "Ajout réussi ✓";
 
   }catch(e){
-    alert("Erreur ajout: " + e.message);
+    alert("Erreur: " + e.message);
+    btn.textContent = "Ajouter au stock →";
+  }finally{
+    btn.disabled = false;
   }
 };
-
 // DELETE
 window.del = async function(id){
   if(!confirm("Supprimer ?")) return;
