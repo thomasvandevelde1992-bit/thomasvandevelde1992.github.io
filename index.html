@@ -589,68 +589,32 @@ window.prevImg=function(inputId,previewId){
 };
 
 // Add Item
-window.addItem = async function(){
-
+window.addItem=async function(){
   const name=document.getElementById('f-name').value.trim();
   const qty=parseInt(document.getElementById('f-qty').value);
   const min=parseInt(document.getElementById('f-min').value);
-
-  if(!name||isNaN(qty)||isNaN(min)){
-    alert("Remplis les champs obligatoires");
-    return;
-  }
-
+  if(!name||isNaN(qty)||isNaN(min)){showToast('Remplissez les champs obligatoires *','warn');return;}
   const btn=document.getElementById('add-btn');
-  btn.disabled=true;
-  btn.textContent='Ajout en cours…';
-
+  btn.disabled=true;btn.textContent='Ajout en cours…';
   try{
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout Firebase")), 8000)
-    );
-
-    const write = addDoc(collection(db,'items'),{
-      name,
-      qty,
-      min,
+    const ref=await addDoc(collection(db,'items'),{
+      name,qty,min,
       unit:document.getElementById('f-unit').value.trim()||'unité',
       location:document.getElementById('f-loc').value.trim(),
       serial:document.getElementById('f-serial').value.trim(),
       categoryId:document.getElementById('f-cat').value||'',
       imageUrl:document.getElementById('f-img').value.trim(),
-      createdAt:serverTimestamp(),
-      updatedAt:serverTimestamp()
+      createdAt:serverTimestamp(),updatedAt:serverTimestamp()
     });
-
-    await Promise.race([write, timeout]);
-
-    await addDoc(collection(db,'history'),{
-      itemName:name,
-      action:'Ajout',
-      delta:qty,
-      newQty:qty,
-      by:user,
-      at:serverTimestamp()
-    });
-
-    showToast('✓ Ajout réussi','ok');
-
-    // reset
-    ['f-name','f-qty','f-min','f-unit','f-loc','f-serial','f-img']
-      .forEach(id=>document.getElementById(id).value='');
-
+    await addDoc(collection(db,'history'),{itemId:ref.id,itemName:name,action:'Ajout',delta:qty,newQty:qty,by:user,at:serverTimestamp(),note:'Création article'});
+    // Reset form
+    ['f-name','f-qty','f-min','f-unit','f-loc','f-serial','f-img'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('f-cat').value='';
     document.getElementById('prev-add').style.display='none';
-
+    showToast('✓ "'+name+'" ajouté au stock !','ok');
     switchTab('stock');
-
-  }catch(e){
-    alert("Erreur Firebase :\n" + e.message);
-    showToast('Erreur Firebase','danger');
-  }
-
-  btn.disabled=false;
-  btn.textContent='Ajouter au stock →';
+  }catch(e){showToast('Erreur Firebase: '+e.message,'danger');}
+  finally{btn.disabled=false;btn.textContent='Ajouter au stock →';}
 };
 
 // Delete item
